@@ -1,11 +1,9 @@
 // GLEW нужно подключать до GLFW.
-// GLEW
 #define GLEW_STATIC
 #include <GL/glew.h>
-// GLFW
 #include <GLFW/glfw3.h>
 #include <iostream>
-
+#include "Shader.h"
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode)
 {
@@ -15,29 +13,18 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 		glfwSetWindowShouldClose(window, GL_TRUE);
 }
 
-const GLchar* vertexShaderSource{
-	"#version 330 core\nlayout(location = 0) in vec3 position;\nvoid main()\n{\ngl_Position = vec4(position.x, position.y, position.z, 1.0);\n}\n\0"
-}; // source code vertex shader
-const GLchar* fragmentShaderSource{
-	"#version 330 core\nout vec4 color;\nvoid main()\n{\ncolor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n}\n\0"
-}; // source code fragment shader
-
 
 int main()
 {
-	//Инициализация GLFW
-	glfwInit();
+	glfwInit();  	//Инициализация GLFW
+
 	//Настройка GLFW
 	//Задается минимальная требуемая версия OpenGL. 
-	//Мажорная 
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-	//Минорная
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-	//Установка профайла для которого создается контекст
-	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-	//Выключение возможности изменения размера окна
-	glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
-
+	
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3); //Мажорная 
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);  //Минорная
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);  	//Установка профайла для которого создается контекст
+	glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);  	//Выключение возможности изменения размера окна
 
 	GLFWwindow* window = glfwCreateWindow(800, 600, "Game 1", nullptr, nullptr);
 	if (window == nullptr)
@@ -49,59 +36,21 @@ int main()
 	glfwMakeContextCurrent(window);
 
 	glewExperimental = GL_TRUE;
-	// Initialize GLEW to setup the OpenGL Function pointers
-	//glewInit();
-	if (glewInit() != GLEW_OK)
+
+	if (glewInit() != GLEW_OK)  // Initialize GLEW to setup the OpenGL Function pointers
 	{
 		std::cout << "Failed to initialize GLEW" << std::endl;
 		return -1;
 	}
+
 	int width, height;
 	glfwGetFramebufferSize(window, &width, &height); // get width & height from window by reference
 	glViewport(0, 0, width, height); // отрисовать 
 
-
 	glfwSetKeyCallback(window, key_callback);
 
-
-	GLuint vertexShader;
-	vertexShader = glCreateShader(GL_VERTEX_SHADER);
-	glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
-	glCompileShader(vertexShader);
-
-	GLint success; // check the build
-	GLchar infoLog[512];
-	glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
-	if (!success)
-	{
-		glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
-		std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
-	}
-
-	GLuint fragmentShader;  // fragment shader
-	fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-	glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
-	glCompileShader(fragmentShader);
-	glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
-	if (!success)
-	{
-		glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
-		std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
-	}
-
-	GLuint shaderProgram = glCreateProgram();
-	glAttachShader(shaderProgram, vertexShader);
-	glAttachShader(shaderProgram, fragmentShader);
-	glLinkProgram(shaderProgram);
-	glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
-	if(!success) {
-		glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
-		std::cout << "ERROR::LINK::SHADERS::COMPILATION_FAILED\n" << infoLog << std::endl;
-	}
-	//glUseProgram(shaderProgram);
-
-	glDeleteShader(vertexShader);   // после связывания больше не нужны
-	glDeleteShader(fragmentShader);
+	Shader shader("shaders/shader.vs", "shaders/shader.frag");
+	
 
 	GLfloat vertices[] =
 	{
@@ -118,18 +67,18 @@ int main()
 	GLuint VBO, VAO, EBO;
 	glGenBuffers(1, &VBO);
 	glGenBuffers(1, &EBO);
-	// ..:: Код инициализации (выполняется единожды (если, конечно, объект не будет часто изменяться)) :: .. 
+	// Код инициализации (выполняется единожды (если, конечно, объект не будет часто изменяться)) :: .. 
 	// 1. Привязываем VAO;
 	glGenVertexArrays(1, &VAO);
 	// 2. Копируем наш массив вершин в буфер для OpenGL
-		// Bind the Vertex Array Object first, then bind and set vertex buffer(s) and attribute pointer(s).
+	// Bind the Vertex Array Object first, then bind and set vertex buffer(s) and attribute pointer(s).
 	glBindVertexArray(VAO);
 
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_DYNAMIC_DRAW);
 	// 3. Устанавливаем указатели на вершинные атрибуты 
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
 	glEnableVertexAttribArray(0);
@@ -138,11 +87,10 @@ int main()
 	//4. Отвязываем VAO
 	glBindVertexArray(0);
 
-	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); // 2 картинки
+	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); // линии
 
 	while (!glfwWindowShouldClose(window)) // игровой цикл
 	{
-
 		glfwPollEvents();  // Проверяем события и вызываем функции обратного вызова
 
 		// Команды отрисовки
@@ -150,11 +98,11 @@ int main()
 		glClear(GL_COLOR_BUFFER_BIT);
 
 		// rectangle
-		glUseProgram(shaderProgram);
+		shader.Use();
+
 		glBindVertexArray(VAO);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 		glBindVertexArray(0);
-
 
 		glfwSwapBuffers(window);  // Меняем буферы местами
 	}
